@@ -897,8 +897,6 @@ void incluirPedido(Pedido pedidoS[], int &contPedidoS, Cliente clienteS[], int c
                                                  contIngredienteS) != 0;
     };
 
-    system("read -p 'Pressione Enter para continuar...' var");
-
     for (int l = 0; l < contPedidoS; l++) {
         pedidoS[l] = pedidoA[l];
     }
@@ -943,7 +941,7 @@ int incluirNovoItemPedido(ItemPedido itemPedidoS[], int &contItemPedidoS, int co
 
     if (ingredienteS[indexIngrediente].quantEstoque - (
             consumoIngredientes[indexConsumoIngrediente].quantidade * itemPedidoS[contItemPedidoS].quantidade) >= 0) {
-        cout << "Item adicionado com sucesso";
+        cout << "Item adicionado com sucesso" << endl;
         ingredienteS[indexIngrediente].quantEstoque -= (
             consumoIngredientes[indexConsumoIngrediente].quantidade * itemPedidoS[contItemPedidoS].quantidade);
         contItemPedidoS++;
@@ -1342,4 +1340,6 @@ void consultarValorTotalArrecadadoComTodosOsPedidos(Pedido pedidoS[], int contPe
     }
 
     cout << "Valor total arrecadado: " << valorTotalArrecadado << endl;
+
+    system("read -p 'Pressione Enter para continuar...' var");
 }
