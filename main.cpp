@@ -1,4 +1,8 @@
 #include<iostream>
+#include<string>
+#include<type_traits>
+#include<cstdlib>
+
 using namespace std;
 
 // Models
@@ -96,11 +100,11 @@ void verificarCodigo(T [], int, int);
 template<typename T>
 int buscaBinaria(T [], int, int);
 
-template<typename T>
-int buscaBinariaConsumoIngrediente(T [], int, int);
+// Buscas bin�rias espec�ficas
 
-template<typename T>
-int buscaBinariaItemPedido(T [], int, int);
+int buscaBinariaConsumoIngrediente(ConsumoIngredientes [], int, int);
+
+int buscaBinariaItemPedido(ItemPedido [], int, int);
 
 // Leituras
 
@@ -117,12 +121,25 @@ void lerCliente(Cliente [], int &);
 
 void lerGarcom(Garcom [], int &);
 
-void incluirPedido(Pedido [], int &, Cliente [], int, Garcom [], int, ItemPedido [], int &, Produto [], int,
-                   ConsumoIngredientes [], int, Ingrediente [], int);
-
 void lerItemPedido(ItemPedido [], int &, Pedido [], int &, Cliente [], int, Garcom [], int);
 
 void lerCodigosDeProdutosParaExclusao(Produto [], int &);
+
+// Inclus�es
+
+void incluirPedido(Pedido [], int &, Cliente [], int, Garcom [], int, ItemPedido [], int &, Produto [], int,
+                   ConsumoIngredientes [], int, Ingrediente [], int);
+
+void incluirNovoCliente(Cliente [], int &, Cliente [], int);
+
+void incluirNovoGarcom(Garcom [], int &, Garcom [], int);
+
+int incluirNovoItemPedido(ItemPedido [], int &, int, Produto [], int, ConsumoIngredientes [], int, Ingrediente [],
+                          int);
+
+// Exclus�o
+
+void excluirProduto(Produto [], int &, int [], int);
 
 // Percursos
 
@@ -138,22 +155,7 @@ void percursoGarcom(Garcom [], int);
 
 void percursoPedido(Pedido [], int);
 
-// Inclusoes
-
-void incluirNovoCliente(Cliente [], int &, Cliente [], int);
-
-void incluirNovoGarcom(Garcom [], int &, Garcom [], int);
-
-void incluirNovoPedido(Pedido [], int &, Pedido [], int);
-
-int incluirNovoItemPedido(ItemPedido [], int &, int, Produto [], int, ConsumoIngredientes [], int, Ingrediente [],
-                          int);
-
-// Exclus?o
-
-void excluirProduto(Produto [], int &, int [], int);
-
-// Consultar
+// Consultas
 
 void consultarUmIngrediente(Ingrediente [], int);
 
@@ -186,7 +188,7 @@ int main() {
     ingredienteS[0] = {1, "Carne de Hamburguer", 50, 15, 100, 3.50};
     ingredienteS[1] = {2, "Pao de Hamburguer", 22, 20, 150, 1.20};
     ingredienteS[2] = {3, "Queijo Cheddar", 54, 10, 80, 2.00};
-    ingredienteS[3] = {4, "Água gaseificada", 1, 10, 80, 2.00};
+    ingredienteS[3] = {4, "�gua gaseificada", 1, 10, 80, 2.00};
     ingredienteS[4] = {5, "Fruta", 14, 10, 80, 2.00};
     contIngredienteS = 5;
 
@@ -249,7 +251,627 @@ int main() {
 
 // Implementacoes
 
-// Menus
+// 1. Leituras (Categoria, Produtos e Ingredientes)
+
+void lerCategoria(Categoria categoriaS[], int &contCategoriaS) {
+    char continuar = 'S';
+    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
+        system("clear");
+        cout << "\n====== Cadastro de Categorias ======" << endl;
+        cout << "\nDigite o codigo da categoria: ";
+        cin >> categoriaS[contCategoriaS].codigo;
+
+        verificarCodigo(categoriaS, contCategoriaS, i);
+
+        cin.ignore();
+        cout << "\nDigite a descricao da categoria: ";
+        getline(cin, categoriaS[contCategoriaS].descricao);
+
+        contCategoriaS++;
+
+        cout << "\nDeseja continuar?";
+        cout << "\n(S/N):";
+        cin >> continuar;
+    }
+}
+
+void lerProduto(Produto produtoS[], int &contProdutoS, ConsumoIngredientes consumoIngredientes[],
+                int &contConsumoIngredientes, Ingrediente ingredienteS[], int contIngredienteS) {
+    char continuar = 'S';
+    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
+        system("clear");
+        cout << "\n====== Cadastro de Produtos ======" << endl;
+        cout << "\nDigite o codigo do produto: ";
+        cin >> produtoS[contProdutoS].codigo;
+
+        verificarCodigo(produtoS, contProdutoS, i);
+
+        cin.ignore();
+        cout << "\nDigite o descricao do produto: ";
+        getline(cin, produtoS[contProdutoS].descricao);
+
+        cout << "\nDigite o codigo da categoria do produto: ";
+        cin >> produtoS[contProdutoS].codigoCategoria;
+        cout << "\nDigite o preco unitario do produto: ";
+        cin >> produtoS[contProdutoS].precoUnitario;
+
+        lerConsumoIngredientes(consumoIngredientes, contConsumoIngredientes, produtoS[contProdutoS].codigo,
+                               ingredienteS, contIngredienteS);
+
+        contProdutoS++;
+
+        cout << "\nDeseja continuar?";
+        cout << "\n(S/N):";
+        cin >> continuar;
+    }
+}
+
+void lerConsumoIngredientes(ConsumoIngredientes consumoIngredientes[], int &contConsumoIngredientes, int codProduto,
+                            Ingrediente ingredienteS[], int contIngredienteS) {
+    consumoIngredientes[contConsumoIngredientes].codigoProduto = codProduto;
+    cout << "\nDigite o codigo do ingrediente necessario para este produto: ";
+    cin >> consumoIngredientes[contConsumoIngredientes].codigoIngrediente;
+
+    while (buscaBinaria(ingredienteS, consumoIngredientes[contConsumoIngredientes].codigoIngrediente,
+                        contIngredienteS - 1) == -1) {
+        cout << "Codigo nao encontrado.\nPor favor digite outro codigo: ";
+        cin >> consumoIngredientes[contConsumoIngredientes].codigoIngrediente;
+                        }
+
+    cout << "\nDigite a quantidade necessaria de ingrediente para este produto: ";
+    cin >> consumoIngredientes[contConsumoIngredientes].quantidade;
+
+    while (consumoIngredientes[contConsumoIngredientes].quantidade <= 0) {
+        cout << "\nQuantidade necess�ria inv�lida, digite novamente: ";
+        cin >> consumoIngredientes[contConsumoIngredientes].quantidade;
+    }
+
+    contConsumoIngredientes++;
+}
+
+void lerIngrediente(Ingrediente ingredienteS[], int &contIngredienteS) {
+    char continuar = 'S';
+    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
+        system("clear");
+        cout << "\n====== Cadastro de Ingredientes ======" << endl;
+        cout << "\nDigite o codigo do ingrediente: ";
+        cin >> ingredienteS[contIngredienteS].codigo;
+
+        verificarCodigo(ingredienteS, contIngredienteS, i);
+
+        cin.ignore();
+        cout << "\nDigite o descricao do ingrediente: ";
+        getline(cin, ingredienteS[contIngredienteS].descricao);
+
+        cout << "\nDigite o preco unitario do ingrediente: ";
+        cin >> ingredienteS[contIngredienteS].precoUnitario;
+        cout << "\nDigite a quantidade de ingredientes no estoque: ";
+        cin >> ingredienteS[contIngredienteS].quantEstoque;
+        cout << "\nDigite o estoque minimo de ingredientes no estoque: ";
+        cin >> ingredienteS[contIngredienteS].estoqueMin;
+        cout << "\nDigite o estoque maximo de ingredientes no estoque: ";
+        cin >> ingredienteS[contIngredienteS].estoqueMax;
+
+        contIngredienteS++;
+
+        cout << "\nDeseja continuar?";
+        cout << "\n(S/N):";
+        cin >> continuar;
+    }
+}
+
+// 2. Escreva uma funcao para permitir a inclusao de novos registros na tabela de Clientes.
+
+void incluirNovoCliente(Cliente clienteS[], int &contClienteS, Cliente clienteT[], int contClienteT) {
+    Cliente clienteA[1000];
+
+    int i = 0, j = 0, k = 0; // i (contador de S) j (contador de T) k (contador de A)
+    for (; i < contClienteS && j < contClienteT; k++) {
+        if (clienteS[i].codigo < clienteT[j].codigo) {
+            clienteA[k].codigo = clienteS[i].codigo;
+            clienteA[k].nome = clienteS[i].nome;
+            clienteA[k].telefone = clienteS[i].telefone;
+            i++;
+        } else {
+            clienteA[k].codigo = clienteT[j].codigo;
+            clienteA[k].nome = clienteT[j].nome;
+            clienteA[k].telefone = clienteT[j].telefone;
+            j++;
+        }
+    }
+    while (i < contClienteS) {
+        clienteA[k].codigo = clienteS[i].codigo;
+        clienteA[k].nome = clienteS[i].nome;
+        clienteA[k].telefone = clienteS[i].telefone;
+        i++;
+        k++;
+    }
+    while (j < contClienteT) {
+        clienteA[k].codigo = clienteT[j].codigo;
+        clienteA[k].nome = clienteT[j].nome;
+        clienteA[k].telefone = clienteT[j].telefone;
+        j++;
+        k++;
+    }
+    contClienteS = k;
+
+    for (int l = 0; l < k; l++) {
+        clienteS[l].codigo = clienteA[l].codigo;
+        clienteS[l].nome = clienteA[l].nome;
+        clienteS[l].telefone = clienteA[l].telefone;
+    }
+}
+
+// 2.1 - O programa devera garantir que o codigo do cliente a ser inserido nao existe na tabela de Clientes.
+
+void lerCliente(Cliente clienteS[], int &contClienteS) {
+    Cliente clienteT[1000];
+    int contClienteT = 0;
+    char continuar = 'S';
+    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
+        system("clear");
+        cout << "\n====== Cadastro de Clientes ======" << endl;
+        cout << "\nDigite o codigo do cliente: ";
+        cin >> clienteT[contClienteT].codigo;
+
+        verificarCodigo(clienteT, contClienteT, i);
+
+        while (buscaBinaria(clienteS, clienteT[contClienteT].codigo, contClienteS - 1) != -1) {
+            cout << "Codigo ja registrado.\nPor favor digite outro codigo: ";
+            cin >> clienteT[contClienteT].codigo;
+            verificarCodigo(clienteT, contClienteT, i);
+        }
+
+        cin.ignore();
+        cout << "\nDigite o nome do cliente: ";
+        getline(cin, clienteT[contClienteT].nome);
+
+        cout << "\nDigite telefone do cliente: ";
+        cin >> clienteT[contClienteT].telefone;
+
+        contClienteT++;
+
+        cout << "\nDeseja continuar?";
+        cout << "\n(S/N):";
+        cin >> continuar;
+    }
+
+    incluirNovoCliente(clienteS, contClienteS, clienteT, contClienteT);
+}
+
+// 3. Escreva uma funcao para permitir a inclusao de novos registros na tabela de Garcoms.
+
+void incluirNovoGarcom(Garcom garcomS[], int &contGarcomS, Garcom garcomT[], int contGarcomT) {
+    Garcom garcomA[1000];
+    int i = 0, j = 0, k = 0; // i (contador de S) j (contador de T) k (contador de A)
+    for (; i < contGarcomS && j < contGarcomT; k++) {
+        if (garcomS[i].codigo < garcomT[j].codigo) {
+            garcomA[k].codigo = garcomS[i].codigo;
+            garcomA[k].nome = garcomS[i].nome;
+            i++;
+        } else {
+            garcomA[k].codigo = garcomT[j].codigo;
+            garcomA[k].nome = garcomT[j].nome;
+            j++;
+        }
+    }
+    while (i < contGarcomS) {
+        garcomA[k].codigo = garcomS[i].codigo;
+        garcomA[k].nome = garcomS[i].nome;
+        i++;
+        k++;
+    }
+    while (j < contGarcomT) {
+        garcomA[k].codigo = garcomT[j].codigo;
+        garcomA[k].nome = garcomT[j].nome;
+        j++;
+        k++;
+    }
+    contGarcomS = k;
+
+    for (int l = 0; l < k; l++) {
+        garcomS[l].codigo = garcomA[l].codigo;
+        garcomS[l].nome = garcomA[l].nome;
+    }
+}
+
+// 3.1) O programa devera garantir que o codigo do garcom a ser inserido nao existe na tabela de Garcoms.
+
+void lerGarcom(Garcom garcomS[], int &contGarcomS) {
+    Garcom garcomT[1000];
+    int contGarcomT = 0;
+    char continuar = 'S';
+    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
+        system("clear");
+        cout << "\n====== Cadastro de Garcoms ======" << endl;
+        cout << "\nDigite o codigo do garcom: ";
+        cin >> garcomT[contGarcomT].codigo;
+
+        verificarCodigo(garcomT, contGarcomT, i);
+
+        while (buscaBinaria(garcomS, garcomT[contGarcomT].codigo, contGarcomS - 1) != -1) {
+            cout << "Codigo ja registrado.\nPor favor digite outro codigo: ";
+            cin >> garcomT[contGarcomT].codigo;
+            verificarCodigo(garcomT, contGarcomT, i);
+        }
+
+        cin.ignore();
+        cout << "\nDigite o nome do garcom: ";
+        getline(cin, garcomT[contGarcomT].nome);
+
+        contGarcomT++;
+
+        cout << "\nDeseja continuar?";
+        cout << "\n(S/N):";
+        cin >> continuar;
+    }
+
+    incluirNovoGarcom(garcomS, contGarcomS, garcomT, contGarcomT);
+}
+
+// 4. Escreva uma funcao para permitir a exclusao de registros da tabela de Produtos.
+
+void lerCodigosDeProdutosParaExclusao(Produto produtoS[], int &contProdutoS) {
+    int codigoT[1000], contCodigoT = 0;
+    char continuar = 'S';
+    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
+        system("clear");
+        cout << "\n====== Codigos de Produtos Para Exclusao ======" << endl;
+        cout << "\nDigite o codigo do produto a ser excluido: ";
+        cin >> codigoT[contCodigoT];
+
+        verificarCodigo(codigoT, contCodigoT, i);
+
+        while (buscaBinaria(produtoS, codigoT[contCodigoT], contProdutoS - 1) == -1) {
+            cout << "Codigo nao encontrado.\nPor favor digite outro codigo: ";
+            cin >> codigoT[contCodigoT];
+            verificarCodigo(codigoT, contCodigoT, i);
+        }
+
+        contCodigoT++;
+
+        if (contCodigoT == contProdutoS) {
+            cout << "Todos os produtos foram excluidos" << endl;
+            i = 1000;
+        } else {
+            cout << "\nDeseja continuar?";
+            cout << "\n(S/N):";
+            cin >> continuar;
+        }
+    }
+
+    excluirProduto(produtoS, contProdutoS, codigoT, contCodigoT);
+}
+
+void excluirProduto(Produto produtoS[], int &qtdProdutoS, int codigosT[], int qtdCodigosT) {
+    Produto produtoA[1000];
+    int i = 0, j = 0, k = 0; // i (contador de S) j (contador de T) k (contador de A)
+    for (; j < qtdCodigosT; i++) {
+        if (produtoS[i].codigo != codigosT[j]) {
+            produtoA[k].codigo = produtoS[i].codigo;
+            produtoA[k].descricao = produtoS[i].descricao;
+            produtoA[k].codigoCategoria = produtoS[i].codigoCategoria;
+            produtoA[k].precoUnitario = produtoS[i].precoUnitario;
+            k++;
+        } else {
+            j++;
+        }
+    }
+    while (i < qtdProdutoS) {
+        produtoA[k].codigo = produtoS[i].codigo;
+        produtoA[k].descricao = produtoS[i].descricao;
+        produtoA[k].codigoCategoria = produtoS[i].codigoCategoria;
+        produtoA[k].precoUnitario = produtoS[i].precoUnitario;
+        i++;
+        k++;
+    }
+    qtdProdutoS = k;
+
+    for (int l = 0; l < k; l++) {
+        produtoS[l].codigo = produtoA[l].codigo;
+        produtoS[l].descricao = produtoA[l].descricao;
+        produtoS[l].codigoCategoria = produtoA[l].codigoCategoria;
+        produtoS[l].precoUnitario = produtoA[l].precoUnitario;
+    }
+}
+
+// 5. Escreva uma fun��o para permitir o registro de um novo Pedido.
+
+void incluirPedido(Pedido pedidoS[], int &contPedidoS, Cliente clienteS[], int contClienteS, Garcom garcomS[],
+                   int contGarcomS, ItemPedido itemPedidoS[], int &contItemPedidoS, Produto produtoS[],
+                   int contProdutoS, ConsumoIngredientes consumoIngredientes[], int contConsumoIngredientes,
+                   Ingrediente ingredienteS[], int contIngredienteS) {
+    Pedido pedidoA[1000];
+    system("clear");
+    cout << "\n====== Cadastro de Pedidos ======" << endl;
+    cout << "\nDigite o codigo do pedido: ";
+    cin >> pedidoS[contPedidoS].codigo;
+
+    verificarCodigo(pedidoS, contPedidoS, 0);
+
+    while (buscaBinaria(pedidoS, pedidoS[contPedidoS].codigo, contPedidoS - 1) != -1) {
+        cout << "Codigo ja registrado.\nPor favor digite outro codigo: ";
+        cin >> pedidoS[contPedidoS].codigo;
+        verificarCodigo(pedidoS, contPedidoS, 0);
+    }
+
+    cout << "\nDigite o codigo do cliente do pedido: ";
+    cin >> pedidoS[contPedidoS].codigoCliente;
+
+    // 5.1) Quando o usu�rio digitar o c�digo do cliente, o programa dever� buscar este c�digo na tabela de Clientes e exibir o nome do cliente.
+
+
+    int indexClienteEncontrado = buscaBinaria(clienteS, pedidoS[contPedidoS].codigoCliente, contClienteS - 1);
+
+    while (indexClienteEncontrado == -1) {
+        cout << "Codigo nao encontrado.\nPor favor digite outro codigo: ";
+        cin >> pedidoS[contPedidoS].codigoCliente;
+        indexClienteEncontrado = buscaBinaria(clienteS, pedidoS[contPedidoS].codigoCliente, contClienteS - 1);
+    }
+
+    cout << "\nCliente encontrado: " << clienteS[indexClienteEncontrado].nome << endl;
+
+    cout << "\nDigite o codigo do garcom do pedido: ";
+    cin >> pedidoS[contPedidoS].codigoGarcom;
+
+    // 5.2) Quando o usu�rio digitar o c�digo do gar�om, o programa dever� buscar este c�digo na tabela de Gar�ons e exibir o nome do gar�om.
+
+    int indexGarcomEncontrado = buscaBinaria(garcomS, pedidoS[contPedidoS].codigoGarcom, contGarcomS - 1);
+
+    while (indexGarcomEncontrado == -1) {
+        cout << "Codigo nao encontrado.\nPor favor digite outro codigo: ";
+        cin >> pedidoS[contPedidoS].codigoGarcom;
+        indexGarcomEncontrado = buscaBinaria(garcomS, pedidoS[contPedidoS].codigoGarcom, contGarcomS - 1);
+    }
+
+    cout << "\nGarcom encontrado: " << garcomS[indexGarcomEncontrado].nome << endl;
+
+    cout << "\nDigite o dia do pedido: ";
+    cin >> pedidoS[contPedidoS].data.dia;
+
+    cout << "\nDigite o mes do pedido: ";
+    cin >> pedidoS[contPedidoS].data.mes;
+
+    cout << "\nDigite o ano do pedido: ";
+    cin >> pedidoS[contPedidoS].data.ano;
+
+    contPedidoS++;
+
+    int j = 0, k = 0;
+    bool naoInseriuNovoRegistro = true;
+    for (; naoInseriuNovoRegistro; j++) {
+        if (pedidoS[k].codigo < pedidoS[contPedidoS - 1].codigo) {
+            pedidoA[j] = pedidoS[k];
+            k++;
+        } else {
+            pedidoA[j] = pedidoS[contPedidoS - 1];
+            naoInseriuNovoRegistro = false;
+        }
+    }
+
+    while (j < contPedidoS) {
+        pedidoA[j] = pedidoS[k];
+        k++;
+        j++;
+    }
+
+    // 5.3) O programa dever� permitir a inclus�o de um �nico produto para cada pedido, conforme orienta��es do item 6.
+
+
+    int codigoDeResposta = incluirNovoItemPedido(itemPedidoS, contItemPedidoS, pedidoS[contPedidoS - 1].codigo,
+                                                 produtoS, contProdutoS,
+                                                 consumoIngredientes, contConsumoIngredientes, ingredienteS,
+                                                 contIngredienteS);
+
+    while (codigoDeResposta != 0) {
+        codigoDeResposta = incluirNovoItemPedido(itemPedidoS, contItemPedidoS, pedidoS[contPedidoS - 1].codigo,
+                                                 produtoS, contProdutoS,
+                                                 consumoIngredientes, contConsumoIngredientes, ingredienteS,
+                                                 contIngredienteS) != 0;
+    };
+
+    for (int l = 0; l < contPedidoS; l++) {
+        pedidoS[l] = pedidoA[l];
+    }
+}
+
+// 6. Escreva uma fun��o para permitir a inclus�o de produtos em um pedido.
+
+int incluirNovoItemPedido(ItemPedido itemPedidoS[], int &contItemPedidoS, int codigoPedido,
+                          Produto produtoS[], int contProdutoS, ConsumoIngredientes consumoIngredientes[],
+                          int contConsumoIngredientes, Ingrediente ingredienteS[], int contIngredienteS) {
+    system("clear");
+
+    ItemPedido itemPedidoA[1000];
+
+    itemPedidoS[contItemPedidoS].codigoPedido = codigoPedido;
+    cout << "\n====== Selecionar Produto do Pedido ======" << endl;
+    cout << "\nDigite o codigo do produto desejado: ";
+    cin >> itemPedidoS[contItemPedidoS].codigoProduto;
+
+    // 6.1) Quando o usu�rio digitar o c�digo do produto, o programa dever� buscar este c�digo na tabela de Produtos e exibir a descri��o e o pre�o unit�rio.
+
+    int indexProdutoEncontrado = buscaBinaria(produtoS, itemPedidoS[contItemPedidoS].codigoProduto, contProdutoS - 1);
+
+    while (indexProdutoEncontrado == -1) {
+        cout << "Produto nao encontrado.\nPor favor digite outro codigo: ";
+        cin >> itemPedidoS[contItemPedidoS].codigoProduto;
+        indexProdutoEncontrado = buscaBinaria(produtoS, itemPedidoS[contItemPedidoS].codigoProduto, contProdutoS - 1);
+    }
+
+    cout << "Produto: " << produtoS[indexProdutoEncontrado].descricao << endl;
+    cout << "Preco Unitario: " << produtoS[indexProdutoEncontrado].precoUnitario << endl;
+
+    cout << "Digite a quantidade deste produto: " << endl;
+    cin >> itemPedidoS[contItemPedidoS].quantidade;
+
+    // 6.2) Para cada produto selecionado, o programa dever� verificar na estrutura de Consumo de Ingredientes quais ingredientes s�o necess�rios.
+
+
+    int indexConsumoIngrediente = buscaBinariaConsumoIngrediente(consumoIngredientes,
+                                                                 produtoS[indexProdutoEncontrado].codigo,
+                                                                 contConsumoIngredientes - 1);
+
+    // 6.3) Para cada ingrediente necess�rio:
+    // Mostrar a descri��o do ingrediente
+    // Verificar se a quantidade em estoque � suficiente
+    // O programa n�o dever� permitir a inclus�o do item caso algum ingrediente n�o tenha quantidade suficiente
+
+    int indexIngrediente = buscaBinaria(ingredienteS, consumoIngredientes[indexConsumoIngrediente].codigoIngrediente,
+                                        contIngredienteS - 1);
+
+    cout << "\nIngrediente Necessario: " << ingredienteS[indexIngrediente].descricao << endl;
+
+    if (ingredienteS[indexIngrediente].quantEstoque - (
+            consumoIngredientes[indexConsumoIngrediente].quantidade * itemPedidoS[contItemPedidoS].quantidade) >= 0) {
+        cout << "Item adicionado com sucesso" << endl;
+
+        // 6.4) Caso seja poss�vel preparar o produto, o programa dever� subtrair do estoque a quantidade necess�ria de cada ingrediente
+
+        ingredienteS[indexIngrediente].quantEstoque -= (
+            consumoIngredientes[indexConsumoIngrediente].quantidade * itemPedidoS[contItemPedidoS].quantidade);
+        contItemPedidoS++;
+
+        int j = 0, k = 0;
+        bool naoInseriuNovoRegistro = true;
+        for (; naoInseriuNovoRegistro; j++) {
+            if (itemPedidoS[k].codigoPedido < itemPedidoS[contItemPedidoS - 1].codigoPedido) {
+                itemPedidoA[j] = itemPedidoS[k];
+                k++;
+            } else {
+                itemPedidoA[j] = itemPedidoS[contItemPedidoS - 1];
+                naoInseriuNovoRegistro = false;
+            }
+        }
+
+        while (j < contItemPedidoS) {
+            itemPedidoA[j] = itemPedidoS[k];
+            k++;
+            j++;
+        }
+
+        system("read -p 'Pressione Enter para continuar...' var");
+
+        for (int l = 0; l < contItemPedidoS; l++) {
+            itemPedidoS[l] = itemPedidoA[l];
+        }
+
+        return 0;
+    }
+
+    cout << "\nIngredientes insulficientes: " << ingredienteS[indexIngrediente].quantEstoque - (
+        consumoIngredientes[indexConsumoIngrediente].quantidade * itemPedidoS[contItemPedidoS].quantidade) << endl;
+    cout << "Insira outro produto: " << endl;
+    system("read -p 'Pressione Enter para continuar...' var");
+    return -1;
+}
+
+// 7. Escreva uma fun��o para permitir ao usu�rio consultar os dados de determinado ingrediente.
+
+void consultarUmIngrediente(Ingrediente ingrediente[], int qtdIngredienteCadastrado) {
+    system("clear");
+
+    int cod = 0;
+    cout << "Digite o codigo do ingrediente: ";
+    cin >> cod;
+
+    while (cod <= 0) {
+        cout << "O codigo digitado nao e valido!" << endl;
+        cout << "Digite outro codigo para consultar: ";
+        cin >> cod;
+    }
+
+
+    int index = buscaBinaria(ingrediente, cod, qtdIngredienteCadastrado - 1);
+
+    if (index < 0) {
+        cout << "O codigo digitado nao foi encontrado!" << endl;
+        system("read -p 'Pressione Enter para continuar...' var");
+        return;
+    }
+    system("clear");
+
+    // 7.1) Para cada ingrediente consultado, exibir:
+    // Todos os seus dados
+    // O valor total em estoque (quant_estoque � pre�o_unitario)
+
+    cout << "\n{" << endl;
+    cout << "  \"codigo\": " << ingrediente[index].codigo << "," << endl;
+    cout << "  \"descricao\": \"" << ingrediente[index].descricao << "\"," << endl;
+    cout << "  \"quantEstoque\": " << ingrediente[index].quantEstoque << "," << endl;
+    cout << "  \"estoqueMin\": " << ingrediente[index].estoqueMin << "," << endl;
+    cout << "  \"estoqueMax\": " << ingrediente[index].estoqueMax << "," << endl;
+    cout << "  \"precoUnitario\": " << ingrediente[index].precoUnitario << "," << endl;
+    cout << "  \"valorTotalEmEstoque\": " << ingrediente[index].quantEstoque * ingrediente[index].precoUnitario << endl;
+    cout << "}" << endl;
+    cout << endl;
+    system("read -p 'Pressione Enter para continuar...' var");
+}
+
+// 8. Escreva uma fun??o para exibir todos os ingredientes que estejam com a quantidade em estoque abaixo do estoque m?nimo.
+
+void consultarIngredientesComEstoqueBaixo(Ingrediente ingrediente[], int qtdIngredienteCadastrado) {
+    system("clear");
+    int cont = 0;
+    float totalReposicao = 0;
+    for (int i = 0; i < qtdIngredienteCadastrado; i++) {
+        if (ingrediente[i].quantEstoque < ingrediente[i].estoqueMin) {
+
+            // 8.1) As seguintes informa��es devem ser exibidas: C�digo, Descri��o, Quantidade em estoque, Estoque m�ximo, Quantidade a ser comprada, Valor da compra
+
+            cout << "{" << endl;
+            cout << "  \"codigo\": " << ingrediente[i].codigo << "," << endl;
+            cout << "  \"descricao\": \"" << ingrediente[i].descricao << "\"," << endl;
+            cout << "  \"quantEstoque\": " << ingrediente[i].quantEstoque << "," << endl;
+            cout << "  \"estoqueMax\": " << ingrediente[i].estoqueMax << "," << endl;
+            cout << "  \"estoqueMin\": " << ingrediente[i].estoqueMin << "," << endl;
+
+            // 8.1.1) A quantidade a ser comprada � calculada pela diferen�a entre o estoque m�ximo e a quantidade em estoque
+
+            cout << "  \"quantidadeASerComprada\": " << ingrediente[i].estoqueMax - ingrediente[i].quantEstoque << ","
+                    << endl;
+            cout << "  \"valorDaCompraDosIngredientes\": " << (ingrediente[i].estoqueMax - ingrediente[i].quantEstoque)
+                    * ingrediente[i].precoUnitario << endl;
+            cout << "}" << endl;
+            cont++;
+            totalReposicao += (ingrediente[i].estoqueMax - ingrediente[i].quantEstoque)
+                    * ingrediente[i].precoUnitario;
+        }
+    }
+    if (cont == 0) {
+        cout << "Nao ha itens com estoque abaixo do minimo!" << endl;
+    } else {
+        // 8.2) Ao final, a fun��o dever� exibir o valor total a ser gasto na reposi��o de ingredientes
+        cout << "\nTotal de gastos para reposicao: " << totalReposicao << endl;
+    }
+    cout << endl;
+    system("read -p 'Pressione Enter para continuar...' var");
+}
+
+// 9. Escreva uma fun��o para exibir o valor total arrecadado com todos os pedidos.
+
+void consultarValorTotalArrecadadoComTodosOsPedidos(Pedido pedidoS[], int contPedidoS, ItemPedido itemPedidoS[],
+                                                    int contItemPedidoS, Produto produtoS[], int contProdutoS) {
+    system("clear");
+    float valorTotalArrecadado = 0;
+
+    for (int i = 0; i < contPedidoS; i++) {
+        // 9.1) O valor de cada pedido deve ser calculado pela soma dos valores de seus itens
+
+        int indexItemPedido = buscaBinariaItemPedido(itemPedidoS, pedidoS[i].codigo, contItemPedidoS - 1);
+        int indexProduto = buscaBinaria(produtoS, itemPedidoS[indexItemPedido].codigoProduto, contProdutoS - 1);
+
+        // 9.2) O valor de cada item � calculado multiplicando a quantidade pelo pre�o unit�rio do produto
+
+        valorTotalArrecadado += itemPedidoS[indexItemPedido].quantidade * produtoS[indexProduto].precoUnitario;
+    }
+
+    cout << "Valor total arrecadado: " << valorTotalArrecadado << endl;
+
+    system("read -p 'Pressione Enter para continuar...' var");
+}
+
+// Menus - Todas as fun��es descritas acima dever�o ser chamadas atrav�s de um menu de op��es, que ser� implementado na fun��o main().
 
 void mainMenu(
     Categoria categoriaS[], int &contCategoriaS,
@@ -510,7 +1132,8 @@ int menuPedido(Pedido pedidoS[], int &contPedidoS, Cliente clienteS[], int contC
         cout << "|  -> 1 - Voltar                  |" << endl;
         cout << "|  -> 2 - Adicionar registros     |" << endl;
         cout << "|  -> 3 - Consultar registros     |" << endl;
-        cout << "|  -> 4 - Consultar total arrec   |" << endl;
+        cout << "|  -> 4 - Consultar total         |" << endl;
+        cout << "|         arrecadado              |" << endl;
         cout << "-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-" << endl;
         cout << "\n   -> Escolha uma opcao: ";
         cin >> opt;
@@ -542,7 +1165,7 @@ int menuPedido(Pedido pedidoS[], int &contPedidoS, Cliente clienteS[], int contC
     }
 }
 
-// Funcoes Genericas - Utils
+// Utils / Generics
 
 template<typename T>
 void verificarCodigo(T array[], int size, int index) {
@@ -573,6 +1196,8 @@ void verificarCodigo(T array[], int size, int index) {
     }
 }
 
+// As buscas devem ser realizadas de forma aleat�ria
+
 template<typename T>
 int buscaBinaria(T array[], int cod, int f) {
     if (f < 0) return -1;
@@ -592,8 +1217,7 @@ int buscaBinaria(T array[], int cod, int f) {
     return -1;
 }
 
-template<typename T>
-int buscaBinariaConsumoIngrediente(T array[], int cod, int f) {
+int buscaBinariaConsumoIngrediente(ConsumoIngredientes array[], int cod, int f) {
     if (f < 0) return -1;
 
     int i = 0;
@@ -611,8 +1235,7 @@ int buscaBinariaConsumoIngrediente(T array[], int cod, int f) {
     return -1;
 }
 
-template<typename T>
-int buscaBinariaItemPedido(T array[], int cod, int f) {
+int buscaBinariaItemPedido(ItemPedido array[], int cod, int f) {
     if (f < 0) return -1;
 
     int i = 0;
@@ -628,502 +1251,6 @@ int buscaBinariaItemPedido(T array[], int cod, int f) {
         return m;
     }
     return -1;
-}
-
-// 1. Leituras (Categoria, Produtos e Ingredientes)
-
-void lerCategoria(Categoria categoriaS[], int &contCategoriaS) {
-    char continuar = 'S';
-    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
-        system("clear");
-        cout << "\n====== Cadastro de Categorias ======" << endl;
-        cout << "\nDigite o codigo da categoria: ";
-        cin >> categoriaS[contCategoriaS].codigo;
-
-        verificarCodigo(categoriaS, contCategoriaS, i);
-
-        cin.ignore();
-        cout << "\nDigite a descricao da categoria: ";
-        getline(cin, categoriaS[contCategoriaS].descricao);
-
-        contCategoriaS++;
-
-        cout << "\nDeseja continuar?";
-        cout << "\n(S/N):";
-        cin >> continuar;
-    }
-}
-
-void lerProduto(Produto produtoS[], int &contProdutoS, ConsumoIngredientes consumoIngredientes[],
-                int &contConsumoIngredientes, Ingrediente ingredienteS[], int contIngredienteS) {
-    char continuar = 'S';
-    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
-        system("clear");
-        cout << "\n====== Cadastro de Produtos ======" << endl;
-        cout << "\nDigite o codigo do produto: ";
-        cin >> produtoS[contProdutoS].codigo;
-
-        verificarCodigo(produtoS, contProdutoS, i);
-
-        cin.ignore();
-        cout << "\nDigite o descricao do produto: ";
-        getline(cin, produtoS[contProdutoS].descricao);
-
-        cout << "\nDigite o codigo da categoria do produto: ";
-        cin >> produtoS[contProdutoS].codigoCategoria;
-        cout << "\nDigite o preco unitario do produto: ";
-        cin >> produtoS[contProdutoS].precoUnitario;
-
-        lerConsumoIngredientes(consumoIngredientes, contConsumoIngredientes, produtoS[contProdutoS].codigo,
-                               ingredienteS, contIngredienteS);
-
-        contProdutoS++;
-
-        cout << "\nDeseja continuar?";
-        cout << "\n(S/N):";
-        cin >> continuar;
-    }
-}
-
-void lerIngrediente(Ingrediente ingredienteS[], int &contIngredienteS) {
-    char continuar = 'S';
-    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
-        system("clear");
-        cout << "\n====== Cadastro de Ingredientes ======" << endl;
-        cout << "\nDigite o codigo do ingrediente: ";
-        cin >> ingredienteS[contIngredienteS].codigo;
-
-        verificarCodigo(ingredienteS, contIngredienteS, i);
-
-        cin.ignore();
-        cout << "\nDigite o descricao do ingrediente: ";
-        getline(cin, ingredienteS[contIngredienteS].descricao);
-
-        cout << "\nDigite o preco unitario do ingrediente: ";
-        cin >> ingredienteS[contIngredienteS].precoUnitario;
-        cout << "\nDigite a quantidade de ingredientes no estoque: ";
-        cin >> ingredienteS[contIngredienteS].quantEstoque;
-        cout << "\nDigite o estoque minimo de ingredientes no estoque: ";
-        cin >> ingredienteS[contIngredienteS].estoqueMin;
-        cout << "\nDigite o estoque maximo de ingredientes no estoque: ";
-        cin >> ingredienteS[contIngredienteS].estoqueMax;
-
-        contIngredienteS++;
-
-        cout << "\nDeseja continuar?";
-        cout << "\n(S/N):";
-        cin >> continuar;
-    }
-}
-
-// 2.1 - O programa devera garantir que o codigo do cliente a ser inserido nao existe na tabela de Clientes.
-
-void lerCliente(Cliente clienteS[], int &contClienteS) {
-    Cliente clienteT[1000];
-    int contClienteT = 0;
-    char continuar = 'S';
-    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
-        system("clear");
-        cout << "\n====== Cadastro de Clientes ======" << endl;
-        cout << "\nDigite o codigo do cliente: ";
-        cin >> clienteT[contClienteT].codigo;
-
-        verificarCodigo(clienteT, contClienteT, i);
-
-        while (buscaBinaria(clienteS, clienteT[contClienteT].codigo, contClienteS - 1) != -1) {
-            cout << "Codigo ja registrado.\nPor favor digite outro codigo: ";
-            cin >> clienteT[contClienteT].codigo;
-            verificarCodigo(clienteT, contClienteT, i);
-        }
-
-        cin.ignore();
-        cout << "\nDigite o nome do cliente: ";
-        getline(cin, clienteT[contClienteT].nome);
-
-        cout << "\nDigite telefone do cliente: ";
-        cin >> clienteT[contClienteT].telefone;
-
-        contClienteT++;
-
-        cout << "\nDeseja continuar?";
-        cout << "\n(S/N):";
-        cin >> continuar;
-    }
-
-    incluirNovoCliente(clienteS, contClienteS, clienteT, contClienteT);
-}
-
-// 3.1) O programa devera garantir que o codigo do garcom a ser inserido nao existe na tabela de Garcoms.
-
-void lerGarcom(Garcom garcomS[], int &contGarcomS) {
-    Garcom garcomT[1000];
-    int contGarcomT = 0;
-    char continuar = 'S';
-    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
-        system("clear");
-        cout << "\n====== Cadastro de Garcoms ======" << endl;
-        cout << "\nDigite o codigo do garcom: ";
-        cin >> garcomT[contGarcomT].codigo;
-
-        verificarCodigo(garcomT, contGarcomT, i);
-
-        while (buscaBinaria(garcomS, garcomT[contGarcomT].codigo, contGarcomS - 1) != -1) {
-            cout << "Codigo ja registrado.\nPor favor digite outro codigo: ";
-            cin >> garcomT[contGarcomT].codigo;
-            verificarCodigo(garcomT, contGarcomT, i);
-        }
-
-        cin.ignore();
-        cout << "\nDigite o nome do garcom: ";
-        getline(cin, garcomT[contGarcomT].nome);
-
-        contGarcomT++;
-
-        cout << "\nDeseja continuar?";
-        cout << "\n(S/N):";
-        cin >> continuar;
-    }
-
-    incluirNovoGarcom(garcomS, contGarcomS, garcomT, contGarcomT);
-}
-
-void lerConsumoIngredientes(ConsumoIngredientes consumoIngredientes[], int &contConsumoIngredientes, int codProduto,
-                            Ingrediente ingredienteS[], int contIngredienteS) {
-    consumoIngredientes[contConsumoIngredientes].codigoProduto = codProduto;
-    cout << "\nDigite o codigo do ingrediente necessario para este produto: ";
-    cin >> consumoIngredientes[contConsumoIngredientes].codigoIngrediente;
-
-    while (buscaBinaria(ingredienteS, consumoIngredientes[contConsumoIngredientes].codigoIngrediente,
-                        contIngredienteS - 1) == -1) {
-        cout << "Codigo nao encontrado.\nPor favor digite outro codigo: ";
-        cin >> consumoIngredientes[contConsumoIngredientes].codigoIngrediente;
-    }
-
-    cout << "\nDigite a quantidade necessaria de ingrediente para este produto: ";
-    cin >> consumoIngredientes[contConsumoIngredientes].quantidade;
-
-    while (consumoIngredientes[contConsumoIngredientes].quantidade <= 0) {
-        cout << "\nQuantidade necessária inválida, digite novamente: ";
-        cin >> consumoIngredientes[contConsumoIngredientes].quantidade;
-    }
-
-    contConsumoIngredientes++;
-}
-
-// 5. Escreva uma função para permitir o registro de um novo Pedido.
-
-void incluirPedido(Pedido pedidoS[], int &contPedidoS, Cliente clienteS[], int contClienteS, Garcom garcomS[],
-                   int contGarcomS, ItemPedido itemPedidoS[], int &contItemPedidoS, Produto produtoS[],
-                   int contProdutoS, ConsumoIngredientes consumoIngredientes[], int contConsumoIngredientes,
-                   Ingrediente ingredienteS[], int contIngredienteS) {
-    Pedido pedidoA[1000];
-    system("clear");
-    cout << "\n====== Cadastro de Pedidos ======" << endl;
-    cout << "\nDigite o codigo do pedido: ";
-    cin >> pedidoS[contPedidoS].codigo;
-
-    verificarCodigo(pedidoS, contPedidoS, 0);
-
-    while (buscaBinaria(pedidoS, pedidoS[contPedidoS].codigo, contPedidoS - 1) != -1) {
-        cout << "Codigo ja registrado.\nPor favor digite outro codigo: ";
-        cin >> pedidoS[contPedidoS].codigo;
-        verificarCodigo(pedidoS, contPedidoS, 0);
-    }
-
-    cout << "\nDigite o codigo do cliente do pedido: ";
-    cin >> pedidoS[contPedidoS].codigoCliente;
-
-    int indexClienteEncontrado = buscaBinaria(clienteS, pedidoS[contPedidoS].codigoCliente, contClienteS - 1);
-
-    while (indexClienteEncontrado == -1) {
-        cout << "Codigo nao encontrado.\nPor favor digite outro codigo: ";
-        cin >> pedidoS[contPedidoS].codigoCliente;
-        indexClienteEncontrado = buscaBinaria(clienteS, pedidoS[contPedidoS].codigoCliente, contClienteS - 1);
-    }
-
-    cout << "\nCliente encontrado: " << clienteS[indexClienteEncontrado].nome << endl;
-
-    cout << "\nDigite o codigo do garcom do pedido: ";
-    cin >> pedidoS[contPedidoS].codigoGarcom;
-
-    int indexGarcomEncontrado = buscaBinaria(garcomS, pedidoS[contPedidoS].codigoGarcom, contGarcomS - 1);
-
-    while (indexGarcomEncontrado == -1) {
-        cout << "Codigo nao encontrado.\nPor favor digite outro codigo: ";
-        cin >> pedidoS[contPedidoS].codigoGarcom;
-        indexGarcomEncontrado = buscaBinaria(garcomS, pedidoS[contPedidoS].codigoGarcom, contGarcomS - 1);
-    }
-
-    cout << "\nGarcom encontrado: " << garcomS[indexGarcomEncontrado].nome << endl;
-
-    cout << "\nDigite o dia do pedido: ";
-    cin >> pedidoS[contPedidoS].data.dia;
-
-    cout << "\nDigite o mes do pedido: ";
-    cin >> pedidoS[contPedidoS].data.mes;
-
-    cout << "\nDigite o ano do pedido: ";
-    cin >> pedidoS[contPedidoS].data.ano;
-
-    contPedidoS++;
-
-    int j = 0, k = 0;
-    bool naoInseriuNovoRegistro = true;
-    for (; naoInseriuNovoRegistro; j++) {
-        if (pedidoS[k].codigo < pedidoS[contPedidoS - 1].codigo) {
-            pedidoA[j] = pedidoS[k];
-            k++;
-        } else {
-            pedidoA[j] = pedidoS[contPedidoS - 1];
-            naoInseriuNovoRegistro = false;
-        }
-    }
-
-    while (j < contPedidoS) {
-        pedidoA[j] = pedidoS[k];
-        k++;
-        j++;
-    }
-
-    int codigoDeResposta = incluirNovoItemPedido(itemPedidoS, contItemPedidoS, pedidoS[contPedidoS - 1].codigo,
-                                                 produtoS, contProdutoS,
-                                                 consumoIngredientes, contConsumoIngredientes, ingredienteS,
-                                                 contIngredienteS) != 0;
-
-    while (codigoDeResposta != 0) {
-        codigoDeResposta = incluirNovoItemPedido(itemPedidoS, contItemPedidoS, pedidoS[contPedidoS - 1].codigo,
-                                                 produtoS, contProdutoS,
-                                                 consumoIngredientes, contConsumoIngredientes, ingredienteS,
-                                                 contIngredienteS) != 0;
-    };
-
-    for (int l = 0; l < contPedidoS; l++) {
-        pedidoS[l] = pedidoA[l];
-    }
-}
-
-// 6. Escreva uma função para permitir a inclusão de produtos em um pedido.
-
-int incluirNovoItemPedido(ItemPedido itemPedidoS[], int &contItemPedidoS, int codigoPedido,
-                          Produto produtoS[], int contProdutoS, ConsumoIngredientes consumoIngredientes[],
-                          int contConsumoIngredientes, Ingrediente ingredienteS[], int contIngredienteS) {
-    system("clear");
-
-    ItemPedido itemPedidoA[1000];
-
-    itemPedidoS[contItemPedidoS].codigoPedido = codigoPedido;
-    cout << "\n====== Selecionar Produto do Pedido ======" << endl;
-    cout << "\nDigite o codigo do produto desejado: ";
-    cin >> itemPedidoS[contItemPedidoS].codigoProduto;
-
-    int indexProdutoEncontrado = buscaBinaria(produtoS, itemPedidoS[contItemPedidoS].codigoProduto, contProdutoS - 1);
-
-    while (indexProdutoEncontrado == -1) {
-        cout << "Produto nao encontrado.\nPor favor digite outro codigo: ";
-        cin >> itemPedidoS[contItemPedidoS].codigoProduto;
-        indexProdutoEncontrado = buscaBinaria(produtoS, itemPedidoS[contItemPedidoS].codigoProduto, contProdutoS - 1);
-    }
-
-    cout << "Produto: " << produtoS[indexProdutoEncontrado].descricao << endl;
-    cout << "Preco Unitario: " << produtoS[indexProdutoEncontrado].precoUnitario << endl;
-
-    cout << "Digite a quantidade deste produto: " << endl;
-    cin >> itemPedidoS[contItemPedidoS].quantidade;
-
-    int indexConsumoIngrediente = buscaBinariaConsumoIngrediente(consumoIngredientes,
-                                                                 produtoS[indexProdutoEncontrado].codigo,
-                                                                 contConsumoIngredientes - 1);
-
-    int indexIngrediente = buscaBinaria(ingredienteS, consumoIngredientes[indexConsumoIngrediente].codigoIngrediente,
-                                        contIngredienteS - 1);
-
-    cout << "\nIngrediente Necessario: " << ingredienteS[indexIngrediente].descricao << endl;
-
-    if (ingredienteS[indexIngrediente].quantEstoque - (
-            consumoIngredientes[indexConsumoIngrediente].quantidade * itemPedidoS[contItemPedidoS].quantidade) >= 0) {
-        cout << "Item adicionado com sucesso" << endl;
-        ingredienteS[indexIngrediente].quantEstoque -= (
-            consumoIngredientes[indexConsumoIngrediente].quantidade * itemPedidoS[contItemPedidoS].quantidade);
-        contItemPedidoS++;
-
-        int j = 0, k = 0;
-        bool naoInseriuNovoRegistro = true;
-        for (; naoInseriuNovoRegistro; j++) {
-            if (itemPedidoS[k].codigoPedido < itemPedidoS[contItemPedidoS - 1].codigoPedido) {
-                itemPedidoA[j] = itemPedidoS[k];
-                k++;
-            } else {
-                itemPedidoA[j] = itemPedidoS[contItemPedidoS - 1];
-                naoInseriuNovoRegistro = false;
-            }
-        }
-
-        while (j < contItemPedidoS) {
-            itemPedidoA[j] = itemPedidoS[k];
-            k++;
-            j++;
-        }
-
-        system("read -p 'Pressione Enter para continuar...' var");
-
-        for (int l = 0; l < contItemPedidoS; l++) {
-            itemPedidoS[l] = itemPedidoA[l];
-        }
-
-        return 0;
-    }
-
-    cout << "\nIngredientes insulficientes: " << ingredienteS[indexIngrediente].quantEstoque - (
-        consumoIngredientes[indexConsumoIngrediente].quantidade * itemPedidoS[contItemPedidoS].quantidade) << endl;
-    cout << "Insira outro produto: " << endl;
-    system("read -p 'Pressione Enter para continuar...' var");
-    return -1;
-}
-
-
-// 2. Escreva uma funcao para permitir a inclusao de novos registros na tabela de Clientes.
-
-void incluirNovoCliente(Cliente clienteS[], int &contClienteS, Cliente clienteT[], int contClienteT) {
-    Cliente clienteA[1000];
-
-    int i = 0, j = 0, k = 0; // i (contador de S) j (contador de T) k (contador de A)
-    for (; i < contClienteS && j < contClienteT; k++) {
-        if (clienteS[i].codigo < clienteT[j].codigo) {
-            clienteA[k].codigo = clienteS[i].codigo;
-            clienteA[k].nome = clienteS[i].nome;
-            clienteA[k].telefone = clienteS[i].telefone;
-            i++;
-        } else {
-            clienteA[k].codigo = clienteT[j].codigo;
-            clienteA[k].nome = clienteT[j].nome;
-            clienteA[k].telefone = clienteT[j].telefone;
-            j++;
-        }
-    }
-    while (i < contClienteS) {
-        clienteA[k].codigo = clienteS[i].codigo;
-        clienteA[k].nome = clienteS[i].nome;
-        clienteA[k].telefone = clienteS[i].telefone;
-        i++;
-        k++;
-    }
-    while (j < contClienteT) {
-        clienteA[k].codigo = clienteT[j].codigo;
-        clienteA[k].nome = clienteT[j].nome;
-        clienteA[k].telefone = clienteT[j].telefone;
-        j++;
-        k++;
-    }
-    contClienteS = k;
-
-    for (int l = 0; l < k; l++) {
-        clienteS[l].codigo = clienteA[l].codigo;
-        clienteS[l].nome = clienteA[l].nome;
-        clienteS[l].telefone = clienteA[l].telefone;
-    }
-}
-
-// 3. Escreva uma funcao para permitir a inclusao de novos registros na tabela de Garcoms.
-
-void incluirNovoGarcom(Garcom garcomS[], int &contGarcomS, Garcom garcomT[], int contGarcomT) {
-    Garcom garcomA[1000];
-    int i = 0, j = 0, k = 0; // i (contador de S) j (contador de T) k (contador de A)
-    for (; i < contGarcomS && j < contGarcomT; k++) {
-        if (garcomS[i].codigo < garcomT[j].codigo) {
-            garcomA[k].codigo = garcomS[i].codigo;
-            garcomA[k].nome = garcomS[i].nome;
-            i++;
-        } else {
-            garcomA[k].codigo = garcomT[j].codigo;
-            garcomA[k].nome = garcomT[j].nome;
-            j++;
-        }
-    }
-    while (i < contGarcomS) {
-        garcomA[k].codigo = garcomS[i].codigo;
-        garcomA[k].nome = garcomS[i].nome;
-        i++;
-        k++;
-    }
-    while (j < contGarcomT) {
-        garcomA[k].codigo = garcomT[j].codigo;
-        garcomA[k].nome = garcomT[j].nome;
-        j++;
-        k++;
-    }
-    contGarcomS = k;
-
-    for (int l = 0; l < k; l++) {
-        garcomS[l].codigo = garcomA[l].codigo;
-        garcomS[l].nome = garcomA[l].nome;
-    }
-}
-
-// 4. Escreva uma funcao para permitir a exclusao de registros da tabela de Produtos.
-
-void excluirProduto(Produto produtoS[], int &qtdProdutoS, int codigosT[], int qtdCodigosT) {
-    Produto produtoA[1000];
-    int i = 0, j = 0, k = 0; // i (contador de S) j (contador de T) k (contador de A)
-    for (; j < qtdCodigosT; i++) {
-        if (produtoS[i].codigo != codigosT[j]) {
-            produtoA[k].codigo = produtoS[i].codigo;
-            produtoA[k].descricao = produtoS[i].descricao;
-            produtoA[k].codigoCategoria = produtoS[i].codigoCategoria;
-            produtoA[k].precoUnitario = produtoS[i].precoUnitario;
-            k++;
-        } else {
-            j++;
-        }
-    }
-    while (i < qtdProdutoS) {
-        produtoA[k].codigo = produtoS[i].codigo;
-        produtoA[k].descricao = produtoS[i].descricao;
-        produtoA[k].codigoCategoria = produtoS[i].codigoCategoria;
-        produtoA[k].precoUnitario = produtoS[i].precoUnitario;
-        i++;
-        k++;
-    }
-    qtdProdutoS = k;
-
-    for (int l = 0; l < k; l++) {
-        produtoS[l].codigo = produtoA[l].codigo;
-        produtoS[l].descricao = produtoA[l].descricao;
-        produtoS[l].codigoCategoria = produtoA[l].codigoCategoria;
-        produtoS[l].precoUnitario = produtoA[l].precoUnitario;
-    }
-}
-
-
-void lerCodigosDeProdutosParaExclusao(Produto produtoS[], int &contProdutoS) {
-    int codigoT[1000], contCodigoT = 0;
-    char continuar = 'S';
-    for (int i = 0; i < 1000 && toupper(continuar) == 'S'; i++) {
-        system("clear");
-        cout << "\n====== Codigos de Produtos Para Exclusao ======" << endl;
-        cout << "\nDigite o codigo do produto a ser excluido: ";
-        cin >> codigoT[contCodigoT];
-
-        verificarCodigo(codigoT, contCodigoT, i);
-
-        while (buscaBinaria(produtoS, codigoT[contCodigoT], contProdutoS - 1) == -1) {
-            cout << "Codigo nao encontrado.\nPor favor digite outro codigo: ";
-            cin >> codigoT[contCodigoT];
-            verificarCodigo(codigoT, contCodigoT, i);
-        }
-
-        contCodigoT++;
-
-        if (contCodigoT == contProdutoS) {
-            cout << "Todos os produtos foram excluidos" << endl;
-            i = 1000;
-        } else {
-            cout << "\nDeseja continuar?";
-            cout << "\n(S/N):";
-            cin >> continuar;
-        }
-    }
-
-    excluirProduto(produtoS, contProdutoS, codigoT, contCodigoT);
 }
 
 // Percursos
@@ -1253,93 +1380,5 @@ void percursoPedido(Pedido pedidos[], int qtde) {
         }
     }
     cout << "\n]" << endl;
-    system("read -p 'Pressione Enter para continuar...' var");
-}
-
-// 7. Escreva uma fun??o para permitir ao usu?rio consultar os dados de determinado ingrediente.
-
-void consultarUmIngrediente(Ingrediente ingrediente[], int qtdIngredienteCadastrado) {
-    system("clear");
-
-    int cod = 0;
-    cout << "Digite o codigo do ingrediente: ";
-    cin >> cod;
-
-    while (cod <= 0) {
-        cout << "O codigo digitado nao e valido!" << endl;
-        cout << "Digite outro codigo para consultar: ";
-        cin >> cod;
-    }
-
-
-    int index = buscaBinaria(ingrediente, cod, qtdIngredienteCadastrado - 1);
-
-    if (index < 0) {
-        cout << "O codigo digitado nao foi encontrado!" << endl;
-        system("read -p 'Pressione Enter para continuar...' var");
-        return;
-    }
-    system("clear");
-    cout << "\n{" << endl;
-    cout << "  \"codigo\": " << ingrediente[index].codigo << "," << endl;
-    cout << "  \"descricao\": \"" << ingrediente[index].descricao << "\"," << endl;
-    cout << "  \"quantEstoque\": " << ingrediente[index].quantEstoque << "," << endl;
-    cout << "  \"estoqueMin\": " << ingrediente[index].estoqueMin << "," << endl;
-    cout << "  \"estoqueMax\": " << ingrediente[index].estoqueMax << "," << endl;
-    cout << "  \"precoUnitario\": " << ingrediente[index].precoUnitario << "," << endl;
-    cout << "  \"valorTotal\": " << ingrediente[index].quantEstoque * ingrediente[index].precoUnitario << endl;
-    cout << "}" << endl;
-    cout << endl;
-    system("read -p 'Pressione Enter para continuar...' var");
-}
-
-// 8. Escreva uma fun??o para exibir todos os ingredientes que estejam com a quantidade em estoque abaixo do estoque m?nimo.
-
-void consultarIngredientesComEstoqueBaixo(Ingrediente ingrediente[], int qtdIngredienteCadastrado) {
-    system("clear");
-    int cont = 0;
-    float totalReposicao = 0;
-    for (int i = 0; i < qtdIngredienteCadastrado; i++) {
-        if (ingrediente[i].quantEstoque < ingrediente[i].estoqueMin) {
-            cout << "{" << endl;
-            cout << "  \"codigo\": " << ingrediente[i].codigo << "," << endl;
-            cout << "  \"descricao\": \"" << ingrediente[i].descricao << "\"," << endl;
-            cout << "  \"quantEstoque\": " << ingrediente[i].quantEstoque << "," << endl;
-            cout << "  \"estoqueMax\": " << ingrediente[i].estoqueMax << "," << endl;
-            cout << "  \"estoqueMin\": " << ingrediente[i].estoqueMin << "," << endl;
-            cout << "  \"quantidadeASerComprada\": " << ingrediente[i].estoqueMax - ingrediente[i].quantEstoque << ","
-                    << endl;
-            cout << "  \"valorDaCompraDosIngredientes\": " << (ingrediente[i].estoqueMax - ingrediente[i].quantEstoque)
-                    * ingrediente[i].precoUnitario << "," << endl;
-            cout << "}" << endl;
-            cont++;
-            totalReposicao += (ingrediente[i].estoqueMax - ingrediente[i].quantEstoque)
-                    * ingrediente[i].precoUnitario;
-        }
-    }
-    if (cont == 0) {
-        cout << "Nao ha itens com estoque abaixo do minimo!" << endl;
-    } else {
-        cout << "\nTotal de gastos para reposicao: " << totalReposicao << endl;
-    }
-    cout << endl;
-    system("read -p 'Pressione Enter para continuar...' var");
-}
-
-// 9. Escreva uma função para exibir o valor total arrecadado com todos os pedidos.
-
-void consultarValorTotalArrecadadoComTodosOsPedidos(Pedido pedidoS[], int contPedidoS, ItemPedido itemPedidoS[],
-                                                    int contItemPedidoS, Produto produtoS[], int contProdutoS) {
-    system("clear");
-    float valorTotalArrecadado = 0;
-
-    for (int i = 0; i < contPedidoS; i++) {
-        int indexItemPedido = buscaBinariaItemPedido(itemPedidoS, pedidoS[i].codigo, contItemPedidoS);
-        int indexProduto = buscaBinaria(produtoS, itemPedidoS[indexItemPedido].codigoProduto, contProdutoS);
-        valorTotalArrecadado += itemPedidoS[indexItemPedido].quantidade * produtoS[indexProduto].precoUnitario;
-    }
-
-    cout << "Valor total arrecadado: " << valorTotalArrecadado << endl;
-
     system("read -p 'Pressione Enter para continuar...' var");
 }
